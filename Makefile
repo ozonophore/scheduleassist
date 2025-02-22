@@ -4,7 +4,7 @@ VERSION = 1.0.0
 BUILD_DIR = ./build
 CMD_DIR = ./cmd
 
-LDFLAGS = ""
+LDFLAGS = "-s -w"
 
 PLATFORMS := \
   linux/amd64 \
@@ -32,7 +32,7 @@ build:
 		echo "Building for the platform '$$platform'"; \
 		GOOS=$${platform%/*}; \
 		GOARCH=$${platform##*/}; \
-		go build  -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$$platform/$(APP_NAME) $(CMD_DIR); \
+		go build  -ldflags=$(LDFLAGS) -o $(BUILD_DIR)/$$platform/$(APP_NAME) $(CMD_DIR); \
 		tar -cf ${BUILD_DIR}/${APP_NAME}_$${GOOS}_$${GOARCH}.tar.gz -C $(BUILD_DIR)/$$platform .; \
 	done
 	@echo "Done."
