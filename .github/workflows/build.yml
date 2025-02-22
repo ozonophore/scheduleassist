@@ -58,5 +58,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: build/**.tar.gz
-          asset_name: scheduleassist_${{ matrix.platform.replace('/', '_') }}.tar.gz
+          asset_name: scheduleassist_${{ github.sha }}.tar.gz
           asset_content_type: application/gzip
