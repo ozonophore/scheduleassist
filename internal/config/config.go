@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	TelegramToken string
-	OpenAIToken   string
-	Debug         bool
+	TelegramToken      string
+	OpenAIToken        string
+	Debug              bool
+	ContextPoolTimeout int
 }
 
 func InitConfig() *Config {
@@ -34,9 +35,15 @@ func InitConfig() *Config {
 		debug = false
 	}
 
+	contextPoolTimeout, err := strconv.Atoi(os.Getenv("CONTEXT_POOL_TIMEOUT"))
+	if err != nil {
+		contextPoolTimeout = 5
+	}
+
 	return &Config{
-		TelegramToken: token,
-		OpenAIToken:   openaiToken,
-		Debug:         debug,
+		TelegramToken:      token,
+		OpenAIToken:        openaiToken,
+		Debug:              debug,
+		ContextPoolTimeout: contextPoolTimeout,
 	}
 }

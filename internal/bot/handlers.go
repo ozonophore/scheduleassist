@@ -11,9 +11,13 @@ import (
 
 func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	logger.Info("Received message from %s: %s", message.From.UserName, message.Text)
-	_, ok := context2.GetContextPool().GetContext(message.Chat.ID)
+	ctx, ok := context2.GetContextPool().GetContext(message.Chat.ID)
 	logger.Debug("Context is new: %v", !ok)
 	if !ok {
+		ctx.OnClose = func(key int64) {
+			logger.Info("Context with key %d has been closed", key)
+			SendMessage(bot, key, "Время вашей сессии истекло. Пожалуйста, начните новый запрос или уточните информацию, чтобы продолжить.")
+		}
 		handleStart(bot, message.Chat.ID)
 		return
 	}

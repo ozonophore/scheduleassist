@@ -1,7 +1,6 @@
 package context
 
 import (
-	"context"
 	"sync"
 	"time"
 )
@@ -28,16 +27,16 @@ func GetContextPool() *ContextPool {
 	return instance
 }
 
-func (cp *ContextPool) GetContext(key int64) (context.Context, bool) {
+func (cp *ContextPool) GetContext(key int64) (*AutoCancelContext, bool) {
 	cp.Lock()
 	defer cp.Unlock()
 	if actx, ok := cp.pool[key]; ok {
 		actx.Reset()
-		return actx.ctx, true
+		return actx, true
 	}
-	actx := NewAutoCancelContext(cp.timer)
+	actx := NewAutoCancelContext(cp.timer, key)
 	cp.pool[key] = actx
-	return actx.ctx, false
+	return actx, false
 }
 
 func (cp *ContextPool) watchdog() {
@@ -49,6 +48,9 @@ func (cp *ContextPool) watchdog() {
 					cp.Lock()
 					defer cp.Unlock()
 					delete(cp.pool, key)
+					if actx.OnClose != nil {
+						actx.OnClose(key)
+					}
 				}()
 			}
 		}

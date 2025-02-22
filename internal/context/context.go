@@ -12,14 +12,17 @@ type AutoCancelContext struct {
 	cancel   context.CancelFunc
 	duration *time.Duration
 	timer    *time.Timer
+	chatID   int64
+	OnClose  func(chatId int64)
 }
 
-func NewAutoCancelContext(duration time.Duration) *AutoCancelContext {
+func NewAutoCancelContext(duration time.Duration, chatID int64) *AutoCancelContext {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &AutoCancelContext{
 		ctx:      ctx,
 		cancel:   cancel,
 		duration: &duration,
+		chatID:   chatID,
 		timer: time.AfterFunc(duration, func() {
 			cancel()
 		}),
