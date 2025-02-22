@@ -13,6 +13,6 @@ func main() {
 	cfg := config.InitConfig()
 	logger.Initialize(cfg.Debug)
 	textanalyzer.Initialize(cfg)
-	context.NewContextPool(30 * time.Second)
+	context.NewContextPool(time.Duration(cfg.ContextPoolTimeout) * time.Minute)
 	bot.StartBot(cfg)
 }
