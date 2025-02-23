@@ -39,6 +39,11 @@ func (cp *ContextPool) GetContext(key int64) (*AutoCancelContext, bool) {
 	return actx, false
 }
 
+func (cp *ContextPool) GetContextValue(key int64) *AutoCancelContext {
+	ctx, _ := cp.GetContext(key)
+	return ctx
+}
+
 func (cp *ContextPool) watchdog() {
 	for {
 		for key, actx := range cp.pool {

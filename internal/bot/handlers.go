@@ -2,10 +2,8 @@ package bot
 
 import (
 	context2 "ScheduleAssist/internal/context"
-	"ScheduleAssist/internal/contextstore"
 	"ScheduleAssist/internal/logger"
 	"ScheduleAssist/internal/textanalyzer"
-	"context"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -20,6 +18,10 @@ func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		}
 		handleStart(bot, message.Chat.ID)
 		return
+	}
+	switch ctx.CurrOperation {
+	case context2.AddTaskConfirm:
+		handleEditTasks(bot, message)
 	}
 
 	switch message.Text {
@@ -57,6 +59,10 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery) {
 	//	responseText = "🗓️ Статистика за **2 месяца**"
 	//case "three_months":
 	//	responseText = "📊 Статистика за **3 месяца**"
+	case "edit_tasks":
+		handleEditTasks(bot, query.Message)
+	case "save_tasks":
+		handleSaveTasks(bot, query.Message)
 	case "add_task":
 		handleDefaultMessage(bot, query.Message)
 	case "tasks":
@@ -139,19 +145,50 @@ func handleStatistics(bot *tgbotapi.BotAPI, chatID int64) {
 	bot.Send(msg)
 }
 
+func handleEditTasks(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	chatID := message.Chat.ID
+	ctx := context2.GetContextPool().GetContextValue(chatID)
+	if ctx.CurrOperation != context2.AddTaskConfirm {
+		SendMessage(bot, chatID, "Нет данных для редактирования")
+		return
+	}
+
+}
+
 func handleDefaultMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	chatID := message.Chat.ID
-	context2.GetContextPool().GetContext(chatID)
-	userContext := contextstore.Get(chatID)
-	if userContext.Context == nil {
-		userContext.Context = textanalyzer.Context(context.Background())
-	}
-	task, content := textanalyzer.PrepareModel(userContext.Context, message.Text)
-	if task == nil {
+	ctx := context2.GetContextPool().GetContextValue(chatID).SetOperation(context2.AddTask)
+	textanalyzer.Context(ctx)
+	tasks, content := textanalyzer.PrepareModel(ctx, message.Text)
+	if tasks == nil {
 		msg := tgbotapi.NewMessage(chatID, content)
 		bot.Send(msg)
 	} else {
-		userContext.Context = nil
-		logger.Debug("Task: %s", task)
+		ctx.SetOperation(context2.AddTaskConfirm)
+		msg := tgbotapi.NewMessage(chatID, textanalyzer.ToHTML(tasks))
+		msg.ParseMode = tgbotapi.ModeHTML
+		buttons := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("Сохранить", "save_tasks"),
+			),
+		)
+		msg.ReplyMarkup = buttons
+		_, err := bot.Send(msg)
+		if err != nil {
+			logger.Error("Error sending message: %s", err.Error())
+		}
+		logger.Debug("Task: %s", tasks)
 	}
+}
+
+func handleSaveTasks(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	chatID := message.Chat.ID
+	ctx := context2.GetContextPool().GetContextValue(chatID)
+	if ctx.CurrOperation != context2.AddTaskConfirm {
+		SendMessage(bot, chatID, "Нет данных для сохранения")
+		return
+	}
+	//TODO: Save tasks in database
+	SendMessage(bot, chatID, "Задачи сохранены")
+	ctx.SetOperation(context2.None)
 }

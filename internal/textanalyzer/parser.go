@@ -10,8 +10,15 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 )
+
+type IContext interface {
+	GetRequest() *openai.ChatCompletionRequest
+	SetRequest(request *openai.ChatCompletionRequest)
+	GetContext() context.Context
+}
 
 var client *openai.Client
 
@@ -43,17 +50,19 @@ func CreateRequestWithRoleSystem() *openai.ChatCompletionRequest {
 					"'short_task' (краткое описание задачи), " +
 					"'full_task' (полное описание задачи), " +
 					"'amount' (Количество действий, если задано, для единичных операций = 1), " +
-					"'cron' (формат расписания), " +
-					"'human_readable_cron' (человекочитаемый формат расписания проверки статуса задача), " +
+					"'cron' (формат расписания задачи), " +
+					"'human_readable_cron' (человекочитаемый формат расписания выполнения задача), " +
+					"'human_readable_check_cron' (человекочитаемый формат расписания проверки статуса задача), " +
 					"'check_status_cron' (формат расписания проверки статуса задачи), " +
-					"'start_date' (дата начала), " +
+					"'start_date' (дата начала в формате YYYY-MM-DD), " +
 					"'end_date' (дата окончания), " +
-					"'completed' (статус выполнения). " +
+					"'completed' (статус выполнения в формате YYYY-MM-DD). " +
 					" Если это несколько задач, то уточняй данные по все сразу. " +
 					" Если точное время выполнения задачи не указано, указыват только день. " +
 					"Если какая-то информация отсутствует, уточни у пользователя. " +
 					"Если расписание проверки задачи не задано, то проверять в день выполенния задачи в 8 часов вечера. " +
-					"Ответ верни в только в формате JSON без лишних деталей, точно как в примере. Для фразы 'Покормить кода в 8 утра " +
+					"Ответ верни в только в формате JSON без лишних деталей, точно как в примере. Коментарии в JSON запрещены. " +
+					"Для фразы 'Покормить кода в 8 утра " +
 					"Пример: \n" +
 					"[{\n" +
 					"  \"task_type\": \"one-time\",\n" +
@@ -61,10 +70,11 @@ func CreateRequestWithRoleSystem() *openai.ChatCompletionRequest {
 					"  \"full_task\": \"Покормить кота в 8 утра\",\n" +
 					"  \"amount\": 1,\n" +
 					"  \"cron\": \"0 8 * * *\",\n" +
-					"  \"human_readable_cron\": \"Проверить статус в 20:00\", " +
+					"  \"human_readable_cron\": \"Выполнить в 8:00\", " +
 					"  \"check_status_cron\": \"0 20 * * *\",\n" +
-					"  \"start_date\": \"2022-01-01T08:00:00Z\",\n" +
-					"  \"end_date\": \"2022-01-01T08:05:00Z\",\n" +
+					"  \"human_readable_check_cron\": \"Проверить статус в 20:00\", " +
+					"  \"start_date\": \"2022-01-01\",\n" +
+					"  \"end_date\": \"2022-01-01\",\n" +
 					"  \"completed\": false\n" +
 					"}]",
 			},
@@ -72,13 +82,15 @@ func CreateRequestWithRoleSystem() *openai.ChatCompletionRequest {
 	}
 }
 
-func Context(parent context.Context) context.Context {
-	return context.WithValue(parent, "task_request", CreateRequestWithRoleSystem())
+func Context(parent IContext) {
+	if parent.GetRequest() == nil {
+		parent.SetRequest(CreateRequestWithRoleSystem())
+	}
 }
 
-func PrepareModel(ctx context.Context, text string) (taskPoint *[]model.Task, question string) {
-	request, ok := ctx.Value("task_request").(*openai.ChatCompletionRequest)
-	if !ok {
+func PrepareModel(ctx IContext, text string) (taskPoint *[]model.Task, question string) {
+	request := ctx.GetRequest()
+	if request == nil {
 		logger.Error("Request doesn't serialize")
 	}
 	message := openai.ChatCompletionMessage{
@@ -86,13 +98,13 @@ func PrepareModel(ctx context.Context, text string) (taskPoint *[]model.Task, qu
 		Content: text,
 	}
 	request.Messages = append(request.Messages, message)
-	resp, err := client.CreateChatCompletion(ctx, *request)
+	resp, err := client.CreateChatCompletion(ctx.GetContext(), *request)
 	content := resp.Choices[0].Message.Content
 	if err != nil {
 		log.Fatal(err)
 	}
 	var tasks []model.Task
-	content = extractJSONFromText(content)
+	content = ExtractJSONFromText(content)
 	err = json.Unmarshal([]byte(content), &tasks)
 	if err != nil {
 		logger.Debug("%v", err)
@@ -105,15 +117,17 @@ func PrepareModel(ctx context.Context, text string) (taskPoint *[]model.Task, qu
 	return
 }
 
-func extractJSONFromText(text string) string {
+func ExtractJSONFromText(text string) string {
 	// Регулярка для поиска JSON массива
-	re := regexp.MustCompile(`\[\s*{[\s\S]*}\s*\]`)
-
+	re := regexp.MustCompile(`(?s)(\{.*\}|\[.*\])`)
 	// Находим совпадение
 	matches := re.FindString(text)
 	if matches == "" {
 		return text
 	}
 
+	if !(strings.HasPrefix(matches, "[") && strings.HasSuffix(matches, "]")) {
+		return fmt.Sprintf("[%s]", matches)
+	}
 	return matches
 }
