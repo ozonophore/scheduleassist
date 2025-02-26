@@ -4,6 +4,8 @@ VERSION = 1.0.0
 BUILD_DIR = ./build
 CMD_DIR = ./cmd
 
+TEST_COVERAGE_FILE=coverage.out
+
 LDFLAGS = "-s -w"
 
 PLATFORMS := \
@@ -40,8 +42,18 @@ build:
 clean:
 	@echo "Cleaning up build artifacts..."
 	@rm -rf $(BUILD_DIR)
+	@rm -f $(TEST_COVERAGE_FILE) coverage.html
 	@echo "Done."
 
 test:
 	@echo "Запуск тестов..."
-	$(GO) test ./...
+	go test  -cover ./...
+
+coverage:
+	go test -coverprofile=$(TEST_COVERAGE_FILE) ./...
+	go tool cover -func=$(TEST_COVERAGE_FILE)
+
+# Открыть отчет в HTML
+coverage-html: coverage
+	go tool cover -html=$(TEST_COVERAGE_FILE) -o coverage.html
+	open coverage.html

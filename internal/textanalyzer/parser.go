@@ -3,7 +3,7 @@ package textanalyzer
 import (
 	"ScheduleAssist/internal/config"
 	"ScheduleAssist/internal/logger"
-	"ScheduleAssist/internal/model"
+	"ScheduleAssist/internal/model/domain"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -88,7 +88,7 @@ func Context(parent IContext) {
 	}
 }
 
-func PrepareModel(ctx IContext, text string) (taskPoint *[]model.Task, question string) {
+func PrepareModel(ctx IContext, text string) (taskPoint *[]domain.Task, question string) {
 	request := ctx.GetRequest()
 	if request == nil {
 		logger.Error("Request doesn't serialize")
@@ -103,7 +103,7 @@ func PrepareModel(ctx IContext, text string) (taskPoint *[]model.Task, question 
 	if err != nil {
 		log.Fatal(err)
 	}
-	var tasks []model.Task
+	var tasks []domain.Task
 	content = ExtractJSONFromText(content)
 	err = json.Unmarshal([]byte(content), &tasks)
 	if err != nil {

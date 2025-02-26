@@ -1,15 +1,21 @@
 package bot
 
 import (
+	"ScheduleAssist/internal/adapter"
 	context2 "ScheduleAssist/internal/context"
 	"ScheduleAssist/internal/logger"
+	"ScheduleAssist/internal/model/mapper"
 	"ScheduleAssist/internal/textanalyzer"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	logger.Info("Received message from %s: %s", message.From.UserName, message.Text)
-	ctx, ok := context2.GetContextPool().GetContext(message.Chat.ID)
+	user, err := adapter.SetUserWithTID(message.From.UserName)
+	if err != nil {
+		logger.Panic("Error setting user: %v", err)
+	}
+	ctx, ok := context2.GetContextPool().GetContext(message.Chat.ID, mapper.MapUserDBToUser(user))
 	logger.Debug("Context is new: %v", !ok)
 	if !ok {
 		ctx.OnClose = func(key int64) {
@@ -100,7 +106,7 @@ func sendMainMenu(bot *tgbotapi.BotAPI, chatID int64) {
 
 	msg := tgbotapi.NewMessage(chatID, "Выберите действие:")
 	msg.ReplyMarkup = buttons
-	_, ok := context2.GetContextPool().GetContext(chatID)
+	_, ok := context2.GetContextPool().GetContext(chatID, nil)
 	bot.Send(msg)
 	logger.Debug("Context is new: %v", !ok)
 }
@@ -165,6 +171,7 @@ func handleDefaultMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		bot.Send(msg)
 	} else {
 		ctx.SetOperation(context2.AddTaskConfirm)
+		ctx.SetTasks(tasks)
 		msg := tgbotapi.NewMessage(chatID, textanalyzer.ToHTML(tasks))
 		msg.ParseMode = tgbotapi.ModeHTML
 		buttons := tgbotapi.NewInlineKeyboardMarkup(
@@ -188,7 +195,13 @@ func handleSaveTasks(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		SendMessage(bot, chatID, "Нет данных для сохранения")
 		return
 	}
-	//TODO: Save tasks in database
+	tasks := ctx.GetTasks()
+	err := adapter.CreatTasks(mapper.MapTasksToDB(tasks, ctx.GetUserID()))
+	if err != nil {
+		SendMessage(bot, chatID, "Ошибка сохранения задач")
+		logger.Error("Error saving tasks: %s", err.Error())
+		return
+	}
 	SendMessage(bot, chatID, "Задачи сохранены")
 	ctx.SetOperation(context2.None)
 }

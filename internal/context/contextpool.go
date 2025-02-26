@@ -1,6 +1,7 @@
 package context
 
 import (
+	"ScheduleAssist/internal/model/domain"
 	"sync"
 	"time"
 )
@@ -27,20 +28,20 @@ func GetContextPool() *ContextPool {
 	return instance
 }
 
-func (cp *ContextPool) GetContext(key int64) (*AutoCancelContext, bool) {
+func (cp *ContextPool) GetContext(key int64, user *domain.User) (*AutoCancelContext, bool) {
 	cp.Lock()
 	defer cp.Unlock()
 	if actx, ok := cp.pool[key]; ok {
 		actx.Reset()
 		return actx, true
 	}
-	actx := NewAutoCancelContext(cp.timer, key)
+	actx := NewAutoCancelContext(cp.timer, key, user)
 	cp.pool[key] = actx
 	return actx, false
 }
 
 func (cp *ContextPool) GetContextValue(key int64) *AutoCancelContext {
-	ctx, _ := cp.GetContext(key)
+	ctx, _ := cp.GetContext(key, nil)
 	return ctx
 }
 

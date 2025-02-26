@@ -1,19 +1,19 @@
 package textanalyzer
 
 import (
-	"ScheduleAssist/internal/model"
+	"ScheduleAssist/internal/model/domain"
 	"fmt"
 	"strings"
 )
 
-func convertTaskType(taskType model.TaskType) string {
+func convertTaskType(taskType domain.TaskType) string {
 	if taskType == "one-time" {
 		return "одноразовая"
 	}
 	return "повторяющаяся"
 }
 
-func ToHTML(tasks *[]model.Task) string {
+func ToHTML(tasks *[]domain.Task) string {
 	var sb strings.Builder
 	for _, task := range *tasks {
 		sb.WriteString(fmt.Sprintf("<b>Задача: %s</b>\n", task.ShortTask))

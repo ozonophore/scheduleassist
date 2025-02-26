@@ -16,6 +16,10 @@ const (
 	dateTimeFormat = "2006-01-02T15:04:05Z07:00"
 )
 
+func NewCustomTime(t time.Time) CustomTime {
+	return CustomTime{t}
+}
+
 func (ct *CustomTime) UnmarshalJSON(data []byte) error {
 	str := string(data)
 	str = strings.TrimSuffix(strings.TrimPrefix(str, "\""), "\"")

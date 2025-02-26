@@ -12,6 +12,7 @@ type Config struct {
 	OpenAIToken        string
 	Debug              bool
 	ContextPoolTimeout int
+	DSN                string
 }
 
 func InitConfig() *Config {
@@ -40,10 +41,16 @@ func InitConfig() *Config {
 		contextPoolTimeout = 5
 	}
 
+	dsn := os.Getenv("DSN")
+	if dsn == "" {
+		dsn = "database.db"
+	}
+
 	return &Config{
 		TelegramToken:      token,
 		OpenAIToken:        openaiToken,
 		Debug:              debug,
 		ContextPoolTimeout: contextPoolTimeout,
+		DSN:                dsn,
 	}
 }

@@ -1,6 +1,7 @@
 package context
 
 import (
+	"ScheduleAssist/internal/model/domain"
 	"context"
 	"github.com/sashabaranov/go-openai"
 	"sync"
@@ -26,9 +27,11 @@ type AutoCancelContext struct {
 	OnClose       func(chatId int64)
 	CurrOperation OperationType
 	request       *openai.ChatCompletionRequest
+	tasks         *[]domain.Task
+	user          *domain.User
 }
 
-func NewAutoCancelContext(duration time.Duration, chatID int64) *AutoCancelContext {
+func NewAutoCancelContext(duration time.Duration, chatID int64, user *domain.User) *AutoCancelContext {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &AutoCancelContext{
 		ctx:           ctx,
@@ -36,10 +39,16 @@ func NewAutoCancelContext(duration time.Duration, chatID int64) *AutoCancelConte
 		duration:      &duration,
 		chatID:        chatID,
 		CurrOperation: None,
+		tasks:         nil,
+		user:          user,
 		timer: time.AfterFunc(duration, func() {
 			cancel()
 		}),
 	}
+}
+
+func (acc *AutoCancelContext) GetUserID() uint32 {
+	return acc.user.ID
 }
 
 func (acc *AutoCancelContext) Reset() {
@@ -52,8 +61,17 @@ func (acc *AutoCancelContext) SetOperation(operation OperationType) *AutoCancelC
 	acc.CurrOperation = operation
 	if operation == None {
 		acc.SetRequest(nil)
+		acc.tasks = nil
 	}
 	return acc
+}
+
+func (acc *AutoCancelContext) GetTasks() *[]domain.Task {
+	return acc.tasks
+}
+
+func (acc *AutoCancelContext) SetTasks(tasks *[]domain.Task) {
+	acc.tasks = tasks
 }
 
 func (acc *AutoCancelContext) GetRequest() *openai.ChatCompletionRequest {
