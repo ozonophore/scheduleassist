@@ -22,6 +22,6 @@ func Initialize(cfg *config.Config) {
 	migration()
 }
 
-func GetDB() {
+func GetDB() *gorm.DB {
 	return db
 }

@@ -12,10 +12,11 @@ const (
 )
 
 type User struct {
-	ID         uint32  `gorm:"primaryKey;autoIncrement"`
-	Username   *string `gorm:"size:255"`
-	Password   *string `gorm:"size:255"`
-	TelegramID *string `gorm:"size:255;uniqueIndex"`
+	ID               uint32  `gorm:"primaryKey;autoIncrement"`
+	Username         *string `gorm:"size:255"`
+	Password         *string `gorm:"size:255"`
+	TelegramID       *int64  `gorm:"size:255;uniqueIndex"`
+	TelegramUsername *string `gorm:"size:255;uniqueIndex"`
 }
 
 // Task - основная модель задачи

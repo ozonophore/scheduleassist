@@ -1,6 +1,7 @@
 package time
 
 import (
+	"ScheduleAssist/internal/logger"
 	"fmt"
 	"regexp"
 	"strings"
@@ -22,6 +23,10 @@ func NewCustomTime(t time.Time) CustomTime {
 
 func (ct *CustomTime) UnmarshalJSON(data []byte) error {
 	str := string(data)
+	logger.Debug("UnmarshalJSON: %s", str)
+	if str == "null" || str == "" {
+		return nil
+	}
 	str = strings.TrimSuffix(strings.TrimPrefix(str, "\""), "\"")
 
 	re := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}`)

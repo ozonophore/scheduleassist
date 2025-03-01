@@ -75,7 +75,7 @@ func TestMapTasksToDB(t *testing.T) {
 		},
 	}
 
-	actual := MapTasksToDB(&tasks)
+	actual := MapTasksToDB(&tasks, 0)
 	if len(*actual) != len(expected) {
 		t.Fatalf("expected %d tasks but got %d", len(expected), len(*actual))
 	}

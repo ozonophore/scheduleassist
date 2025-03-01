@@ -34,7 +34,7 @@ build:
 		echo "Building for the platform '$$platform'"; \
 		GOOS=$${platform%/*}; \
 		GOARCH=$${platform##*/}; \
-		go build  -ldflags=$(LDFLAGS) -o $(BUILD_DIR)/$$platform/$(APP_NAME) $(CMD_DIR); \
+		go build -tags=postgres -ldflags=$(LDFLAGS) -o $(BUILD_DIR)/$$platform/$(APP_NAME) $(CMD_DIR); \
 		tar -cf ${BUILD_DIR}/${APP_NAME}_$${GOOS}_$${GOARCH}.tar.gz -C $(BUILD_DIR)/$$platform .; \
 	done
 	@echo "Done."

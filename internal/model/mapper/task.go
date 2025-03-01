@@ -7,10 +7,11 @@ import (
 
 func MapUserDBToUser(user *orm.User) *domain.User {
 	return &domain.User{
-		ID:         user.ID,
-		Username:   user.Username,
-		Password:   user.Password,
-		TelegramID: user.TelegramID,
+		ID:               user.ID,
+		Username:         user.Username,
+		Password:         user.Password,
+		TelegramUsername: user.TelegramUsername,
+		TelegramID:       user.TelegramID,
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 
 func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	logger.Info("Received message from %s: %s", message.From.UserName, message.Text)
-	user, err := adapter.SetUserWithTID(message.From.UserName)
+	user, err := adapter.SetUserWithUsername(message.From.UserName, message.From.ID)
 	if err != nil {
 		logger.Panic("Error setting user: %v", err)
 	}

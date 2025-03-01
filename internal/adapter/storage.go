@@ -7,8 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetUserWithTID(id string) (*orm.User, error) {
-	user, err := GetUserByTID(id)
+func SetUserWithUsername(username string, id int64) (*orm.User, error) {
+	user, err := GetUserByUsername(username)
 	if err != nil {
 		logger.Error("failed to get user: %v", err)
 		return nil, err
@@ -17,7 +17,8 @@ func SetUserWithTID(id string) (*orm.User, error) {
 		return user, nil
 	}
 	user = &orm.User{
-		TelegramID: &id,
+		TelegramUsername: &username,
+		TelegramID:       &id,
 	}
 	result := GetDB().Create(user)
 	if result.Error != nil {
@@ -28,9 +29,9 @@ func SetUserWithTID(id string) (*orm.User, error) {
 	return user, nil
 }
 
-func GetUserByTID(id string) (*orm.User, error) {
+func GetUserByUsername(username string) (*orm.User, error) {
 	var user orm.User
-	tx := GetDB().First(&user, "telegram_id=?", id)
+	tx := GetDB().First(&user, "telegram_username=?", username)
 	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

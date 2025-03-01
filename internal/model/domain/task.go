@@ -13,10 +13,11 @@ const (
 )
 
 type User struct {
-	ID         uint32
-	Username   *string
-	Password   *string
-	TelegramID *string
+	ID               uint32
+	Username         *string
+	Password         *string
+	TelegramID       *int64
+	TelegramUsername *string
 }
 
 // Task - основная модель задачи
