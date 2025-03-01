@@ -51,3 +51,16 @@ func CreatTasks(value *[]orm.Task) error {
 	logger.Debug("Row saved %d", result.RowsAffected)
 	return nil
 }
+
+func GetTasksByUserID(userID uint32) (*[]orm.Task, error) {
+	var tasks []orm.Task
+	tx := GetDB().Debug().Find(&tasks, "user_id=?", userID)
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if tx.Error != nil {
+		logger.Error("failed to get tasks: %v", tx.Error)
+		return nil, tx.Error
+	}
+	return &tasks, nil
+}

@@ -73,6 +73,14 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery) {
 		handleDefaultMessage(bot, query.Message)
 	case "tasks":
 		updateSubmenu(bot, query.Message.Chat.ID, messageID, "список задач")
+	case "tasks_today":
+		handleMenuTasks(bot, query.Message.Chat.ID, messageID, "список задач", "today")
+	case "tasks_tomorrow":
+		handleMenuTasks(bot, query.Message.Chat.ID, messageID, "список задач", "tomorrow")
+	case "tasks_week":
+		handleMenuTasks(bot, query.Message.Chat.ID, messageID, "список задач", "week")
+	case "tasks_month":
+		handleMenuTasks(bot, query.Message.Chat.ID, messageID, "список задач", "month")
 	case "back":
 		updateMainMenu(bot, query.Message.Chat.ID, messageID)
 	}
@@ -127,7 +135,33 @@ func updateSubmenu(bot *tgbotapi.BotAPI, chatID int64, messageID int, section st
 	msg := tgbotapi.NewEditMessageText(chatID, messageID, "Вы выбрали "+section)
 	msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
 		InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{
+			{tgbotapi.NewInlineKeyboardButtonData("📅 Сегодня", "tasks_today"),
+				tgbotapi.NewInlineKeyboardButtonData("📅 Завтра", "tasks_tomorrow")},
+			{tgbotapi.NewInlineKeyboardButtonData("📅 Неделя", "tasks_week"),
+				tgbotapi.NewInlineKeyboardButtonData("📅 Месяц", "tasks_month")},
 			{tgbotapi.NewInlineKeyboardButtonData("⬅️ Назад", "back")},
+		},
+	}
+	bot.Send(msg)
+}
+
+func handleMenuTasks(bot *tgbotapi.BotAPI, chatID int64, messageID int, section string, period string) {
+	msg := tgbotapi.NewEditMessageText(chatID, messageID, section)
+	ctx := context2.GetContextPool().GetContextValue(chatID)
+	tasks, err := adapter.GetTasksByUserID(ctx.GetUserID())
+	if err != nil {
+		SendMessage(bot, chatID, "Ошибка получения задач")
+		logger.Error("Error getting tasks: %s", err.Error())
+		return
+	}
+	buttons := []tgbotapi.InlineKeyboardButton{}
+	for _, task := range *tasks {
+		buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonData(task.ShortTask, string(task.ID)))
+	}
+	msg.ReplyMarkup = &tgbotapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{
+			buttons,
+			{tgbotapi.NewInlineKeyboardButtonData("⬅️ Назад", "tasks")},
 		},
 	}
 	bot.Send(msg)
